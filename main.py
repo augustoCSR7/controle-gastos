@@ -27,21 +27,48 @@ app.add_middleware(
 MONGODB_URL = os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
 DATABASE_NAME = os.environ.get("MONGODB_DATABASE", "controle_gastos")
 
-# Cliente MongoDB simplificado para Railway
-try:
-    client = AsyncIOMotorClient(
-        MONGODB_URL,
-        serverSelectionTimeoutMS=5000,
-        connectTimeoutMS=10000,
-        socketTimeoutMS=10000,
-        maxPoolSize=10
-    )
-    database = client[DATABASE_NAME]
-except Exception as e:
-    print(f"Erro na configuração inicial do MongoDB: {e}")
-    # Fallback básico
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
-    database = client["controle_gastos"]
+# Cliente MongoDB com configuração específica para Railway
+def create_mongodb_client():
+    """Cria cliente MongoDB com configurações otimizadas para Railway"""
+    
+    # Configurações para Railway (sem SSL)
+    railway_config = {
+        "serverSelectionTimeoutMS": 3000,
+        "connectTimeoutMS": 5000,
+        "socketTimeoutMS": 5000,
+        "maxPoolSize": 5,
+        "retryWrites": False,
+        "tls": False,
+        "ssl": False
+    }
+    
+    # Tentar diferentes configurações
+    urls_to_try = [
+        # URL sem SSL
+        MONGODB_URL.replace("mongodb+srv://", "mongodb://").replace("?retryWrites=true&w=majority", ""),
+        # URL original mas forçando sem SSL
+        MONGODB_URL + "&tls=false&ssl=false",
+        # URL simplificada
+        MONGODB_URL.split("?")[0],
+        # Fallback local
+        "mongodb://localhost:27017"
+    ]
+    
+    for url in urls_to_try:
+        try:
+            print(f"🔄 Tentando conectar: {url.split('@')[0]}@***")
+            client = AsyncIOMotorClient(url, **railway_config)
+            return client, True
+        except Exception as e:
+            print(f"❌ Falhou: {e}")
+            continue
+    
+    # Se nada funcionar, retorna cliente básico
+    return AsyncIOMotorClient("mongodb://localhost:27017"), False
+
+# Criar cliente
+client, connection_available = create_mongodb_client()
+database = client[DATABASE_NAME]
 
 # Collections
 categorias_collection = database.categorias
@@ -97,27 +124,19 @@ class Gasto(BaseModel):
 @app.on_event("startup")
 async def startup_db_client():
     try:
-        # Testar conexão com múltiplas tentativas
-        connection_success = False
+        # Testar conexão simples
+        print("🔄 Testando conexão MongoDB...")
         
-        for attempt in range(3):
-            try:
-                await client.admin.command('ping')
-                print("✅ Conectado ao MongoDB Atlas!")
-                connection_success = True
-                break
-            except Exception as conn_error:
-                print(f"⚠️ Tentativa {attempt + 1} falhou: {conn_error}")
-                if attempt < 2:  # Não é a última tentativa
-                    await asyncio.sleep(2)
-                else:
-                    print("❌ Todas as tentativas de conexão falharam")
-        
-        if not connection_success:
-            print("❌ Erro ao conectar MongoDB: Verifique as credenciais e rede")
+        # Tentar ping simples
+        try:
+            await client.admin.command('ping')
+            print("✅ Conectado ao MongoDB!")
+        except Exception as ping_error:
+            print(f"⚠️ Ping falhou: {ping_error}")
+            print("🔄 Continuando sem MongoDB (modo desenvolvimento)")
             return
         
-        # Criar índices para performance
+        # Criar índices apenas se conectado
         try:
             await categorias_collection.create_index("nome", unique=True)
             await tipos_pagamento_collection.create_index("nome", unique=True)
@@ -129,7 +148,8 @@ async def startup_db_client():
             print(f"⚠️ Aviso ao criar índices: {idx_error}")
         
     except Exception as e:
-        print(f"❌ Erro ao conectar MongoDB: {e}")
+        print(f"❌ Erro geral: {e}")
+        print("🔄 API funcionando sem MongoDB")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
@@ -514,12 +534,29 @@ async def relatorio_anual(ano: int):
 async def root():
     return {
         "message": "💰 API de Controle de Gastos",
-        "version": "2.1.0",
+        "version": "2.1.1",
         "database": "MongoDB Atlas",
         "framework": "FastAPI + Motor",
         "status": "online",
         "docs": "/docs",
         "redoc": "/redoc"
+    }
+
+@app.get("/health")
+async def health_check():
+    """Endpoint para verificar saúde da API"""
+    try:
+        # Testar MongoDB
+        await client.admin.command('ping')
+        db_status = "connected"
+    except:
+        db_status = "disconnected"
+    
+    return {
+        "status": "healthy",
+        "database": db_status,
+        "version": "2.1.1",
+        "timestamp": datetime.now().isoformat()
     }
 
 if __name__ == "__main__":
