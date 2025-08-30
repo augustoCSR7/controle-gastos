@@ -26,8 +26,16 @@ app.add_middleware(
 MONGODB_URL = os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
 DATABASE_NAME = os.environ.get("MONGODB_DATABASE", "controle_gastos")
 
-# Cliente MongoDB
-client = AsyncIOMotorClient(MONGODB_URL)
+# Cliente MongoDB com configurações SSL para Railway
+import ssl
+client = AsyncIOMotorClient(
+    MONGODB_URL,
+    ssl=True,
+    ssl_cert_reqs=ssl.CERT_NONE,
+    serverSelectionTimeoutMS=5000,
+    connectTimeoutMS=10000,
+    socketTimeoutMS=10000
+)
 database = client[DATABASE_NAME]
 
 # Collections
