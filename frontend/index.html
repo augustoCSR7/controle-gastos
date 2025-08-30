@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Gastos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="conexao-status">
+            <div class="status-indicator" id="status-indicator"></div>
+            <span id="status-text">Verificando conexão...</span>
+        </div>
+        <span id="auto-refresh">Atualização automática: ON</span>
+    </div>
+
+    <!-- Layout Principal -->
+    <div class="layout">
+        <!-- Navbar Lateral -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Controle de Gastos</h1>
+                <p>Sistema Financeiro</p>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <button class="nav-btn active" onclick="showSection('gastos')">
+                    <span class="nav-icon">💰</span>
+                    <span>Criar Gasto</span>
+                </button>
+                
+                <button class="nav-btn" onclick="showSection('historico')">
+                    <span class="nav-icon">📋</span>
+                    <span>Histórico</span>
+                </button>
+                
+                <button class="nav-btn" onclick="showSection('relatorios')">
+                    <span class="nav-icon">📊</span>
+                    <span>Relatórios</span>
+                </button>
+                
+                <hr class="sidebar-divider">
+                
+                <button class="nav-btn" onclick="openModal('categoria-modal')">
+                    <span class="nav-icon">🏷️</span>
+                    <span>Nova Categoria</span>
+                </button>
+                
+                <button class="nav-btn" onclick="openModal('pagamento-modal')">
+                    <span class="nav-icon">💳</span>
+                    <span>Novo Pagamento</span>
+                </button>
+            </nav>
+            
+            <!-- Total de Gastos na Sidebar -->
+            <div class="sidebar-total">
+                <div class="total-label">Total do Mês</div>
+                <div class="total-valor" id="total-gastos">R$ 0,00</div>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <!-- Seção: Criar Gasto (Principal) -->
+            <section id="gastos-section" class="content-section active">
+                <div class="page-header">
+                    <h2>💰 Novo Gasto</h2>
+                    <p>Registre seus gastos de forma rápida e organizada</p>
+                </div>
+                
+                <div class="form-card">
+                    <form id="form-gasto" class="gasto-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>✏️ Descrição</label>
+                                <input type="text" id="gasto-descricao" placeholder="Ex: Almoço no restaurante" required>
+                            </div>
+                            <div class="form-group">
+                                <label>💵 Valor (R$)</label>
+                                <input type="number" id="gasto-valor" step="0.01" placeholder="0,00" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>🏷️ Categoria</label>
+                                <select id="gasto-categoria" required>
+                                    <option value="">Selecione uma categoria...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>💳 Forma de Pagamento</label>
+                                <select id="gasto-tipo-pagamento" required>
+                                    <option value="">Selecione o tipo...</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>📅 Data</label>
+                                <input type="date" id="gasto-data" required>
+                            </div>
+                            <div class="form-group form-submit">
+                                <button type="submit" class="btn btn-primary btn-large">
+                                    <span>💰 Adicionar Gasto</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Seção: Histórico -->
+            <section id="historico-section" class="content-section">
+                <div class="page-header">
+                    <h2>� Histórico de Gastos</h2>
+                    <div class="page-actions">
+                        <button class="btn btn-small" onclick="loadGastos()">🔄 Atualizar</button>
+                    </div>
+                </div>
+                
+                <div class="historico-content" id="historico-content">
+                    <div class="empty-state">
+                        <h3>📝 Nenhum gasto encontrado</h3>
+                        <p>Comece adicionando seu primeiro gasto!</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção: Relatórios -->
+            <section id="relatorios-section" class="content-section">
+                <div class="page-header">
+                    <h2>📊 Relatórios</h2>
+                    <p>Análise dos seus gastos</p>
+                </div>
+                
+                <div class="cards-grid">
+                    <div class="card">
+                        <h3>Em breve...</h3>
+                        <p>Relatórios por categoria, período e tipo de pagamento</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Nova Categoria -->
+    <div id="categoria-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏷️ Nova Categoria</h3>
+                <button class="modal-close" onclick="closeModal('categoria-modal')">&times;</button>
+            </div>
+            <form id="form-categoria" class="modal-form">
+                <div class="form-group">
+                    <label>Nome da Categoria</label>
+                    <input type="text" id="categoria-nome" placeholder="Ex: Transporte" required>
+                </div>
+                <div class="form-group">
+                    <label>Cor</label>
+                    <input type="color" id="categoria-cor" value="#3498db">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('categoria-modal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">🏷️ Criar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Novo Tipo de Pagamento -->
+    <div id="pagamento-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💳 Novo Tipo de Pagamento</h3>
+                <button class="modal-close" onclick="closeModal('pagamento-modal')">&times;</button>
+            </div>
+            <form id="form-pagamento" class="modal-form">
+                <div class="form-group">
+                    <label>Nome do Tipo</label>
+                    <input type="text" id="pagamento-nome" placeholder="Ex: Cartão de Crédito" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ícone</label>
+                        <input type="text" id="pagamento-icone" placeholder="💳" maxlength="2" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Cor</label>
+                        <input type="color" id="pagamento-cor" value="#3498db">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('pagamento-modal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">💳 Criar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
