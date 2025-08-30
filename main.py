@@ -8,6 +8,7 @@ from datetime import date, datetime
 import uvicorn
 from dotenv import load_dotenv
 from bson import ObjectId
+import asyncio
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -26,15 +27,26 @@ app.add_middleware(
 MONGODB_URL = os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
 DATABASE_NAME = os.environ.get("MONGODB_DATABASE", "controle_gastos")
 
-# Cliente MongoDB com configurações SSL para Railway
+# Cliente MongoDB com configurações SSL específicas para Railway
 import ssl
+import certifi
+
+# Configuração SSL para Railway
+ssl_context = ssl.create_default_context(cafile=certifi.where())
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
 client = AsyncIOMotorClient(
     MONGODB_URL,
-    ssl=True,
-    ssl_cert_reqs=ssl.CERT_NONE,
+    tls=True,
+    tlsCAFile=certifi.where(),
+    tlsAllowInvalidCertificates=True,
+    tlsAllowInvalidHostnames=True,
     serverSelectionTimeoutMS=5000,
     connectTimeoutMS=10000,
-    socketTimeoutMS=10000
+    socketTimeoutMS=10000,
+    maxPoolSize=10,
+    retryWrites=True
 )
 database = client[DATABASE_NAME]
 
@@ -92,9 +104,36 @@ class Gasto(BaseModel):
 @app.on_event("startup")
 async def startup_db_client():
     try:
-        # Testar conexão
-        await client.admin.command('ping')
-        print("✅ Conectado ao MongoDB Atlas!")
+        # Testar conexão com múltiplas tentativas
+        for attempt in range(3):
+            try:
+                await client.admin.command('ping')
+                print("✅ Conectado ao MongoDB Atlas!")
+                break
+            except Exception as conn_error:
+                print(f"⚠️ Tentativa {attempt + 1} falhou: {conn_error}")
+                if attempt == 2:
+                    print("❌ Todas as tentativas de conexão falharam")
+                    print("🔄 Tentando conexão alternativa...")
+                    
+                    # Tentar com string de conexão alternativa
+                    global client, database
+                    alt_url = MONGODB_URL.replace("mongodb+srv://", "mongodb://").replace(":27017", ":27017")
+                    client = AsyncIOMotorClient(
+                        alt_url,
+                        tls=False,
+                        serverSelectionTimeoutMS=3000
+                    )
+                    database = client[DATABASE_NAME]
+                    
+                    try:
+                        await client.admin.command('ping')
+                        print("✅ Conectado com URL alternativa!")
+                    except:
+                        print("❌ Erro ao conectar MongoDB: Verifique as credenciais e rede")
+                        return
+                
+                await asyncio.sleep(2)
         
         # Criar índices para performance
         await categorias_collection.create_index("nome", unique=True)
