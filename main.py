@@ -13,7 +13,7 @@ import asyncio
 # Carregar variáveis de ambiente
 load_dotenv()
 
-app = FastAPI(title="💰 Controle de Gastos", version="2.0.0")
+app = FastAPI(title="💰 Controle de Gastos", version="2.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -118,19 +118,25 @@ async def startup_db_client():
             return
         
         # Criar índices para performance
-        await categorias_collection.create_index("nome", unique=True)
-        await tipos_pagamento_collection.create_index("nome", unique=True)
-        await gastos_collection.create_index("data_gasto")
-        await gastos_collection.create_index("categoria.nome")
-        await gastos_collection.create_index("tipo_pagamento.nome")
-        print("📋 Índices criados com sucesso!")
+        try:
+            await categorias_collection.create_index("nome", unique=True)
+            await tipos_pagamento_collection.create_index("nome", unique=True)
+            await gastos_collection.create_index("data_gasto")
+            await gastos_collection.create_index("categoria.nome")
+            await gastos_collection.create_index("tipo_pagamento.nome")
+            print("📋 Índices criados com sucesso!")
+        except Exception as idx_error:
+            print(f"⚠️ Aviso ao criar índices: {idx_error}")
         
     except Exception as e:
         print(f"❌ Erro ao conectar MongoDB: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    try:
+        client.close()
+    except:
+        pass
 
 # 🏷️ ROTAS PARA CATEGORIAS
 @app.get("/categorias", response_model=List[Categoria])
