@@ -508,9 +508,10 @@ async def relatorio_anual(ano: int):
 async def root():
     return {
         "message": "💰 API de Controle de Gastos",
-        "version": "2.0.0",
-        "database": "MongoDB",
+        "version": "2.1.0",
+        "database": "MongoDB Atlas",
         "framework": "FastAPI + Motor",
+        "status": "online",
         "docs": "/docs",
         "redoc": "/redoc"
     }
