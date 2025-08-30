@@ -1,16 +1,21 @@
 🚀 CONFIGURAÇÃO RAILWAY - COPIE E COLE
 ==========================================
 
-📋 VARIÁVEIS DE AMBIENTE PARA O RAILWAY:
+📋 CONFIGURAÇÕES NO PAINEL RAILWAY:
 
-1️⃣ Nome: MONGODB_URL
-   Valor: mongodb+srv://augustoc1707_db_user:Wt2WKJ4TIXiNHpem@cluster-controle-gastos.0zgulhb.mongodb.net/controle_gastos?retryWrites=true&w=majority&ssl=true&tlsAllowInvalidCertificates=true
+1️⃣ **ROOT DIRECTORY**: backend
+   (Configure no Settings > General > Root Directory)
 
-2️⃣ Nome: MONGODB_DATABASE
-   Valor: controle_gastos
+2️⃣ **VARIÁVEIS DE AMBIENTE**:
 
-3️⃣ Nome: ENVIRONMENT
-   Valor: production
+MONGODB_URL
+mongodb+srv://augustoc1707_db_user:Wt2WKJ4TIXiNHpem@cluster-controle-gastos.0zgulhb.mongodb.net/controle_gastos?retryWrites=true&w=majority&ssl=true&tlsAllowInvalidCertificates=true
+
+MONGODB_DATABASE
+controle_gastos
+
+ENVIRONMENT
+production
 
 ==========================================
 
