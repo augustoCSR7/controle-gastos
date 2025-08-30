@@ -61,7 +61,7 @@ except Exception as e:
     database = None
 
 # Collections com verificação de segurança
-if database:
+if database is not None:
     categorias_collection = database.categorias
     gastos_collection = database.gastos
     tipos_pagamento_collection = database.tipos_pagamento
@@ -74,7 +74,7 @@ else:
 # Função helper para verificar conectividade
 async def check_db_connection():
     """Verifica se a conexão com o database está ativa"""
-    if not client or not database:
+    if client is None or database is None:
         raise HTTPException(
             status_code=503, 
             detail="Serviço de database indisponível. Tente novamente em alguns instantes."
@@ -141,7 +141,7 @@ class Gasto(BaseModel):
 async def startup_db_client():
     global client, database, categorias_collection, gastos_collection, tipos_pagamento_collection
     
-    if not client:
+    if client is None:
         print("❌ Cliente MongoDB não foi inicializado")
         return
     
@@ -190,7 +190,7 @@ async def startup_db_client():
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    if client:
+    if client is not None:
         client.close()
         print("📝 Conexão MongoDB fechada")
 
@@ -593,7 +593,7 @@ async def root():
 async def health_check():
     """Endpoint para verificação de saúde da aplicação"""
     try:
-        if not client or not database:
+        if client is None or database is None:
             return {
                 "status": "unhealthy",
                 "database": "disconnected",
