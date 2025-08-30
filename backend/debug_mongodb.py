@@ -100,9 +100,9 @@ async def test_network_connectivity():
     """Testa conectividade de rede básica"""
     import socket
     
-    # Testar resolução DNS
+    # Testar resolução DNS do seu cluster
     try:
-        host = "cluster0.xxxxx.mongodb.net"  # Substitua pelo seu host
+        host = "cluster-controle-gastos.0zgulhb.mongodb.net"  # ✅ Seu cluster real
         ip = socket.gethostbyname(host)
         print(f"🌐 DNS Resolution OK: {host} -> {ip}")
     except Exception as e:
