@@ -22,36 +22,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🍃 Configuração MongoDB Atlas com SSL otimizado
+# 🍃 Configuração MongoDB Atlas
 MONGODB_URL = os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
 DATABASE_NAME = os.environ.get("MONGODB_DATABASE", "controle_gastos")
 
-# Configurações SSL específicas para Railway + MongoDB Atlas
-ssl_config = {
-    'ssl': True,
-    'ssl_cert_reqs': 'CERT_NONE',  # Pular verificação do certificado
-    'ssl_ca_certs': None,
-    'ssl_certfile': None,
-    'ssl_keyfile': None,
-    'ssl_crlfile': None,
-    'ssl_pem_passphrase': None,
-    'ssl_match_hostname': False,
-    'connectTimeoutMS': 30000,  # 30 segundos timeout
-    'serverSelectionTimeoutMS': 30000,
-    'socketTimeoutMS': 45000,
-    'maxPoolSize': 10,
-    'retryWrites': True,
-    'w': 'majority'
-}
-
-# Cliente MongoDB com configurações SSL otimizadas
+# Cliente MongoDB simplificado (usando configurações da URL)
 try:
-    if "mongodb+srv://" in MONGODB_URL or "ssl=true" in MONGODB_URL:
-        print("🔐 Conectando ao MongoDB Atlas com SSL...")
-        client = AsyncIOMotorClient(MONGODB_URL, **ssl_config)
-    else:
-        print("🏠 Conectando ao MongoDB local...")
-        client = AsyncIOMotorClient(MONGODB_URL)
+    print("🔐 Conectando ao MongoDB...")
+    client = AsyncIOMotorClient(MONGODB_URL)
     
     database = client[DATABASE_NAME]
     print(f"📁 Database: {DATABASE_NAME}")
