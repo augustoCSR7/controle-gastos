@@ -1,0 +1,26 @@
+🚀 CONFIGURAÇÃO RAILWAY - COPIE E COLE
+==========================================
+
+📋 VARIÁVEIS DE AMBIENTE PARA O RAILWAY:
+
+1️⃣ Nome: MONGODB_URL
+   Valor: mongodb+srv://augustoc1707_db_user:Wt2WKJ4TIXiNHpem@cluster-controle-gastos.0zgulhb.mongodb.net/controle_gastos?retryWrites=true&w=majority&ssl=true&tlsAllowInvalidCertificates=true
+
+2️⃣ Nome: MONGODB_DATABASE
+   Valor: controle_gastos
+
+3️⃣ Nome: ENVIRONMENT
+   Valor: production
+
+==========================================
+
+⚠️ IMPORTANTE - MONGODB ATLAS:
+1. Acesse: https://cloud.mongodb.com/v2/66d1a847e24bc677daf1ef1b#/security/network/accessList
+2. Clique: "ADD IP ADDRESS"
+3. Adicione: 0.0.0.0/0
+4. Confirme: "Confirm"
+
+✅ Após configurar, acesse: https://seu-projeto.up.railway.app/health
+🎯 Deve mostrar: status "healthy"
+
+==========================================

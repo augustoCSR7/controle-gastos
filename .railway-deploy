@@ -1,5 +1,0 @@
-# Railway Deploy Trigger
-# Força rebuild quando alterado
-BUILD_VERSION=2.1.0
-DEPLOY_TIME=2025-08-30
-STATUS=FIXED_SYNTAX_ERROR

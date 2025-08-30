@@ -40,3 +40,18 @@ env/
 # Cache
 .cache/
 .pytest_cache/
+
+# Railway
+.railway-deploy
+*.railway
+
+# Temporários
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+*.swp
+*.swo
