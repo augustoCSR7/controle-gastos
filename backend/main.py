@@ -22,18 +22,74 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🍃 Configuração MongoDB Atlas
+# 🍃 Configuração MongoDB Atlas com SSL otimizado
 MONGODB_URL = os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
 DATABASE_NAME = os.environ.get("MONGODB_DATABASE", "controle_gastos")
 
-# Cliente MongoDB
-client = AsyncIOMotorClient(MONGODB_URL)
-database = client[DATABASE_NAME]
+# Configurações SSL específicas para Railway + MongoDB Atlas
+ssl_config = {
+    'ssl': True,
+    'ssl_cert_reqs': 'CERT_NONE',  # Pular verificação do certificado
+    'ssl_ca_certs': None,
+    'ssl_certfile': None,
+    'ssl_keyfile': None,
+    'ssl_crlfile': None,
+    'ssl_pem_passphrase': None,
+    'ssl_match_hostname': False,
+    'connectTimeoutMS': 30000,  # 30 segundos timeout
+    'serverSelectionTimeoutMS': 30000,
+    'socketTimeoutMS': 45000,
+    'maxPoolSize': 10,
+    'retryWrites': True,
+    'w': 'majority'
+}
 
-# Collections
-categorias_collection = database.categorias
-gastos_collection = database.gastos
-tipos_pagamento_collection = database.tipos_pagamento
+# Cliente MongoDB com configurações SSL otimizadas
+try:
+    if "mongodb+srv://" in MONGODB_URL or "ssl=true" in MONGODB_URL:
+        print("🔐 Conectando ao MongoDB Atlas com SSL...")
+        client = AsyncIOMotorClient(MONGODB_URL, **ssl_config)
+    else:
+        print("🏠 Conectando ao MongoDB local...")
+        client = AsyncIOMotorClient(MONGODB_URL)
+    
+    database = client[DATABASE_NAME]
+    print(f"📁 Database: {DATABASE_NAME}")
+except Exception as e:
+    print(f"⚠️ Erro na criação do cliente MongoDB: {e}")
+    client = None
+    database = None
+
+# Collections com verificação de segurança
+if database:
+    categorias_collection = database.categorias
+    gastos_collection = database.gastos
+    tipos_pagamento_collection = database.tipos_pagamento
+else:
+    print("❌ Database não inicializado - funcionando no modo offline")
+    categorias_collection = None
+    gastos_collection = None
+    tipos_pagamento_collection = None
+
+# Função helper para verificar conectividade
+async def check_db_connection():
+    """Verifica se a conexão com o database está ativa"""
+    if not client or not database:
+        raise HTTPException(
+            status_code=503, 
+            detail="Serviço de database indisponível. Tente novamente em alguns instantes."
+        )
+    
+    try:
+        # Teste rápido de conectividade
+        await client.admin.command('ping')
+        return True
+    except Exception as e:
+        print(f"⚠️ Falha na verificação de conectividade: {e}")
+        raise HTTPException(
+            status_code=503, 
+            detail=f"Database temporariamente indisponível: {str(e)}"
+        )
 
 # Modelos Pydantic
 class CategoriaBase(BaseModel):
@@ -80,28 +136,63 @@ class Gasto(BaseModel):
     tipo_pagamento: Optional[dict] = None
     criado_em: Optional[datetime] = None
 
-# 🚀 Eventos de inicialização
+# 🚀 Eventos de inicialização com teste de conectividade aprimorado
 @app.on_event("startup")
 async def startup_db_client():
+    global client, database, categorias_collection, gastos_collection, tipos_pagamento_collection
+    
+    if not client:
+        print("❌ Cliente MongoDB não foi inicializado")
+        return
+    
     try:
-        # Testar conexão
+        print("🔄 Testando conectividade com MongoDB Atlas...")
+        
+        # Teste de ping com timeout
         await client.admin.command('ping')
-        print("✅ Conectado ao MongoDB Atlas!")
+        print("✅ Ping MongoDB bem-sucedido!")
+        
+        # Teste de listagem de databases
+        db_list = await client.list_database_names()
+        print(f"📚 Databases disponíveis: {db_list}")
+        
+        # Teste de acesso ao database específico
+        stats = await database.command("dbstats")
+        print(f"📊 Database stats: {stats.get('dataSize', 0)} bytes")
         
         # Criar índices para performance
-        await categorias_collection.create_index("nome", unique=True)
-        await tipos_pagamento_collection.create_index("nome", unique=True)
-        await gastos_collection.create_index("data_gasto")
-        await gastos_collection.create_index("categoria.nome")
-        await gastos_collection.create_index("tipo_pagamento.nome")
-        print("📋 Índices criados com sucesso!")
+        if categorias_collection:
+            await categorias_collection.create_index("nome", unique=True)
+            print("✅ Índice de categorias criado")
+        
+        if tipos_pagamento_collection:
+            await tipos_pagamento_collection.create_index("nome", unique=True)
+            print("✅ Índice de tipos de pagamento criado")
+        
+        if gastos_collection:
+            await gastos_collection.create_index("data_gasto")
+            await gastos_collection.create_index("categoria.nome")
+            await gastos_collection.create_index("tipo_pagamento.nome")
+            print("✅ Índices de gastos criados")
+        
+        print("🎉 MongoDB Atlas conectado com sucesso!")
         
     except Exception as e:
-        print(f"❌ Erro ao conectar MongoDB: {e}")
+        print(f"❌ Erro detalhado ao conectar MongoDB: {type(e).__name__}: {e}")
+        print("🔧 Tentativas de resolução:")
+        print("   1. Verificar se IP está na whitelist do MongoDB Atlas")
+        print("   2. Verificar se credenciais estão corretas")
+        print("   3. Verificar se cluster está ativo")
+        print("   4. Verificar conectividade de rede")
+        
+        # Não falhar a aplicação, apenas logar o erro
+        print("⚠️ Aplicação iniciará em modo degradado")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    if client:
+        client.close()
+        print("📝 Conexão MongoDB fechada")
 
 # 🏷️ ROTAS PARA CATEGORIAS
 @app.get("/categorias", response_model=List[Categoria])
@@ -477,14 +568,55 @@ async def relatorio_anual(ano: int):
 
 @app.get("/")
 async def root():
+    # Verificar status da conexão
+    db_status = "🟢 Conectado"
+    try:
+        if client and database:
+            await client.admin.command('ping')
+        else:
+            db_status = "🔴 Desconectado"
+    except Exception as e:
+        db_status = f"🟡 Instável: {str(e)[:50]}..."
+    
     return {
         "message": "💰 API de Controle de Gastos",
         "version": "2.0.0",
-        "database": "MongoDB",
+        "database": f"MongoDB Atlas - {db_status}",
         "framework": "FastAPI + Motor",
+        "ssl_config": "Otimizado para Railway",
         "docs": "/docs",
-        "redoc": "/redoc"
+        "redoc": "/redoc",
+        "health_check": "/health"
     }
+
+@app.get("/health")
+async def health_check():
+    """Endpoint para verificação de saúde da aplicação"""
+    try:
+        if not client or not database:
+            return {
+                "status": "unhealthy",
+                "database": "disconnected",
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        await client.admin.command('ping')
+        
+        # Contar documentos para verificar acesso
+        categorias_count = await categorias_collection.count_documents({})
+        
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "categorias": categorias_count,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "degraded",
+            "database": f"error: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
 
 if __name__ == "__main__":
     import os

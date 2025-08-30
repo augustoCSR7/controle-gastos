@@ -44,12 +44,14 @@ def create_mongodb_client():
     
     # Tentar diferentes configurações
     urls_to_try = [
-        # URL sem SSL
+        # URL original com MongoDB+srv
+        MONGODB_URL,
+        # URL sem srv, apenas mongodb://
         MONGODB_URL.replace("mongodb+srv://", "mongodb://").replace("?retryWrites=true&w=majority", ""),
-        # URL original mas forçando sem SSL
-        MONGODB_URL + "&tls=false&ssl=false",
-        # URL simplificada
-        MONGODB_URL.split("?")[0],
+        # URL simplificada com porta padrão
+        f"mongodb://augustoc1707_db_user:Wt2WKJ4TIXiNHpem@cluster-controle-gastos.0zgulhb.mongodb.net:27017/{DATABASE_NAME}?authSource=admin",
+        # URL com múltiplos hosts (cluster)
+        f"mongodb://augustoc1707_db_user:Wt2WKJ4TIXiNHpem@ac-0vl0ugo-shard-00-00.0zgulhb.mongodb.net:27017,ac-0vl0ugo-shard-00-01.0zgulhb.mongodb.net:27017,ac-0vl0ugo-shard-00-02.0zgulhb.mongodb.net:27017/{DATABASE_NAME}?replicaSet=atlas-14k45z-shard-0&authSource=admin",
         # Fallback local
         "mongodb://localhost:27017"
     ]
