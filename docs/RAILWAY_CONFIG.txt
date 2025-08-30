@@ -3,10 +3,18 @@
 
 📋 CONFIGURAÇÕES NO PAINEL RAILWAY:
 
+⚠️ **CONFIGURAÇÃO CRÍTICA - FAÇA PRIMEIRO**:
 1️⃣ **ROOT DIRECTORY**: backend
-   (Configure no Settings > General > Root Directory)
+   - Settings → General → Root Directory → Digite: backend
+   - Clique em SAVE
 
-2️⃣ **VARIÁVEIS DE AMBIENTE**:
+2️⃣ **BUILD COMMAND** (se necessário):
+   - Settings → Build → Build Command → pip install -r requirements.txt
+
+3️⃣ **START COMMAND** (se necessário):
+   - Settings → Deploy → Start Command → uvicorn main:app --host 0.0.0.0 --port $PORT
+
+4️⃣ **VARIÁVEIS DE AMBIENTE**:
 
 MONGODB_URL
 mongodb+srv://augustoc1707_db_user:Wt2WKJ4TIXiNHpem@cluster-controle-gastos.0zgulhb.mongodb.net/controle_gastos?retryWrites=true&w=majority&ssl=true&tlsAllowInvalidCertificates=true
