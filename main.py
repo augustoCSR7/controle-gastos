@@ -4,13 +4,29 @@ Importa a aplicação FastAPI da pasta backend
 """
 import sys
 import os
+from pathlib import Path
 
 # Adiciona o diretório backend ao path
-backend_path = os.path.join(os.path.dirname(__file__), 'backend')
-sys.path.insert(0, backend_path)
+current_dir = Path(__file__).parent
+backend_dir = current_dir / "backend"
+sys.path.insert(0, str(backend_dir))
 
-# Importa a aplicação
-from main import app
+# Importa a aplicação FastAPI
+try:
+    from main import app
+    print("✅ Aplicação FastAPI importada com sucesso!")
+except ImportError as e:
+    print(f"❌ Erro ao importar aplicação: {e}")
+    # Fallback: tenta importar diretamente
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("backend_main", backend_dir / "main.py")
+    backend_main = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(backend_main)
+    app = backend_main.app
+    print("✅ Aplicação importada via fallback!")
+
+# Expor a aplicação para uvicorn
+application = app
 
 if __name__ == "__main__":
     import uvicorn
